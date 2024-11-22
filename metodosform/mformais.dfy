@@ -1,4 +1,4 @@
-// João Vitor Morandi, Rafael Fernando Blankenburg
+// João Vitor Morandi, Rafael Fernando Blankenburg, Nicholas Spolti
 
 class Conjunto {
     var elements: array<int> 
@@ -186,16 +186,45 @@ method Union(c: Conjunto) returns (d: Conjunto)
     invariant 0 <= i <= c.elements.Length
     invariant d.Valid()
   {
-    d.Add(c.elements[i]);
+    var contains := d.Contains(c.elements[i]);
+    if !contains {
+      d.Add(c.elements[i]);
+    }
     i := i + 1;
   }
 }
+
+method Interseccao(c: Conjunto) returns (d: Conjunto)
+  requires Valid()
+  requires c.Valid()
+  requires elements.Length >= 0
+  requires c.elements.Length >= 0
+  ensures Valid()
+  ensures c.Valid()
+  ensures d.Valid()
+{
+  d := new Conjunto();
+
+  var i := 0;
+  while i < elements.Length
+    invariant 0 <= i <= elements.Length
+    invariant d.Valid()
+
+  {
+    var contains := c.Contains(elements[i]);
+    if contains {
+      d.Add(elements[i]);
+    }
+    i := i + 1;
+  }
+}
+
 }
 
 
 
   method Main()
-  {
+{
     var c := new Conjunto();
 
     var abacate := c.isEmpty();
@@ -204,11 +233,11 @@ method Union(c: Conjunto) returns (d: Conjunto)
     c.Add(4);
     assert c.content == [4];
     c.Add(2);
-    assert c.content == [4,2];
+    assert c.content == [4, 2];
     c.Add(5);
-    assert c.content == [4,2,5];
+    assert c.content == [4, 2, 5];
     c.Add(2);
-    assert c.content == [4,2,5];
+    assert c.content == [4, 2, 5]; 
 
     var idx := c.FindElement(5);
     assert idx == 2;
@@ -219,17 +248,27 @@ method Union(c: Conjunto) returns (d: Conjunto)
     var isEmpty := c.isEmpty();
     assert isEmpty == false;
 
-    var exist:= c.Contains(5);
+    var exist := c.Contains(5);
     assert exist == true;
 
     c.Remove(2);
-    assert c.content == [4,5];
+    assert c.content == [4, 5];
 
-    var b:= new Conjunto();
-
+    var b := new Conjunto();
     b.Add(1);
     assert b.content == [1];
-    b.Remove(1);
-    assert b.content == [];
-    var d:= b.Union(c);
-  }
+    b.Add(4);
+    assert b.content == [1, 4];
+    b.Add(5);
+    assert b.content == [1, 4, 5];
+
+    var d := b.Union(c);
+    assert d.content == [1, 4, 5]; 
+    assert c.content == [4, 5];   
+    assert b.content == [1, 4, 5]; 
+
+    var interseccao := c.Interseccao(b);
+    assert interseccao.content == [4, 5]; 
+    assert c.content == [4, 5];          
+    assert b.content == [1, 4, 5];               
+}
