@@ -30,7 +30,7 @@ class Conjunto {
       Repr := {this, elements};
     }
 
-method newAdd(num:int)
+method Add(num:int)
   requires Valid()
   modifies this
   ensures num !in old(content) ==> elements.Length == old(elements).Length + 1
@@ -38,7 +38,6 @@ method newAdd(num:int)
   ensures elements.Length == |content|
   ensures  forall i :: 0 <= i < elements.Length ==> elements[i] == content[i]
   ensures num in old(content) ==> elements == old(elements)
-
   ensures Valid()
   {
 
@@ -72,96 +71,9 @@ method newAdd(num:int)
 
 }   
 
-method newRemove(num: int)
-  requires Valid()
-  ensures Valid()
-{
-    var isContained: bool := Contains(num); 
-
-    if(isContained){
-      var a:= new int[elements.Length - 1];
-
-      var i := 0;
-      var j := 0;
-      var m;
-      while i < elements.Length
-      invariant 0 <= i <= elements.Length
-      invariant 0 <= j <= a.Length
-      {
-        if(elements[i] != num){
-          a[j] := elements[i];
-          j := j + 1;
-          
-        }
-        else{
-          m:= i;
-        }
-        i := i + 1;
-      }
-    }
-
-}
-  
-  method removeItem(index: int) returns ()
-  requires Valid()
-  requires |content| == elements.Length
-  modifies this
-  requires elements.Length > 0
-  requires 0 <= index < elements.Length
-  ensures elements.Length == old(elements).Length -1
-  ensures last == old(last) -1
-  ensures Valid()
-{
-  var b := new int[elements.Length];
-  var i := 0;
-
-  forall k | 0 <= k < index
-  {
-    b[k] := elements[k];
-  }
-
-  var j := index;
-  i := j + 1;
-
-  while i < elements.Length
-    invariant j < i <= elements.Length
-    invariant j == i - 1
-    invariant index <= j < b.Length
-    invariant b.Length == elements.Length
-    invariant forall k :: 0 <= k < index ==> b[k] == elements[k]
-    invariant this in Repr
-    invariant elements in Repr
-    invariant last == old(last)
-    invariant |content| == elements.Length;
-  {
-    b[j] := elements[i];
-    i := i + 1;
-    j := j + 1;
-  }
-  var c:= new int[b.Length-1];
-
-  forall k | 0 <= k < c.Length
-  {
-    c[k] := b[k];
-  }
-
-  if index == 0{
-    content:= content[index..];
-  } else if index < |content| - 1 {
-      content := content[..index] + content[index+1..];
-  } else if index == |content|{
-      content := content[..index];
-  }
-
-
-    Repr := Repr - {elements} + {c};
-    elements := c;
-    last := last - 1;
-}
 
   method Contains(num: int) returns (ans: bool)
     requires Valid()
-    requires elements.Length >= 0
     ensures ans == (num in content)
     ensures Valid()
     {
@@ -176,6 +88,58 @@ method newRemove(num: int)
         i := i + 1;
       }
       return false; 
+  }
+
+  method Remove(num:int)
+  requires Valid()
+  modifies this
+  ensures num !in old(content) ==> |content| == |old(content)|
+  ensures num in old(content) ==> |content| == |old(content)|-1
+  ensures num in old(content) ==> num !in content
+  ensures num !in content
+  ensures elements.Length == |content|
+  ensures (forall i :: 0 <= i < |old(content)| - 1 ==> (old(elements[i]) == elements[i] || old(elements[i + 1]) == elements[i]))
+  ensures Valid()
+  {
+    var index := FindElement(num);
+    if index < 0
+    {
+      return;
+    }
+    else{
+      var seqtemp: seq<int> := elements[..index]+ elements[index+1..];
+
+      var a := new int[|seqtemp|](i requires 0 <= i < |seqtemp| => seqtemp[i]);
+
+      content:= seqtemp;
+      Repr := Repr - {elements} + {a};
+      elements := a;
+      last := last - 1;
+    }
+  }
+
+
+  method FindElement(num:int) returns (index: int)
+  requires Valid()
+  requires elements.Length >= 0
+  ensures num !in content ==> index < 0
+  ensures num in content ==> index>=0 && index < elements.Length
+  ensures num in content ==> elements[index] == num
+  ensures Valid()
+  {
+    var i:=0;
+    index:=-1;
+    while i < elements.Length
+    invariant 0 <= i <= elements.Length
+    invariant forall k :: 0 <= k < i ==> elements[k] != num 
+    invariant num !in content ==> forall k :: 0 <= k < i ==> elements[k] != num
+    {
+      if elements[i] == num{
+         return i;
+      }
+      i:= i+1;
+    }
+    return index;
   }
 
   method numElements() returns (count: int)
@@ -213,7 +177,7 @@ method Union(c: Conjunto) returns (d: Conjunto)
     invariant 0 <= i <= elements.Length
     invariant d.Valid()
   {
-    d.newAdd(elements[i]);
+    d.Add(elements[i]);
     i := i + 1;
   }
 
@@ -222,7 +186,7 @@ method Union(c: Conjunto) returns (d: Conjunto)
     invariant 0 <= i <= c.elements.Length
     invariant d.Valid()
   {
-    d.newAdd(c.elements[i]);
+    d.Add(c.elements[i]);
     i := i + 1;
   }
 }
@@ -237,15 +201,17 @@ method Union(c: Conjunto) returns (d: Conjunto)
     var abacate := c.isEmpty();
     assert abacate == true;
 
-    c.newAdd(4);
+    c.Add(4);
     assert c.content == [4];
-    c.newAdd(2);
+    c.Add(2);
     assert c.content == [4,2];
-    c.newAdd(5);
+    c.Add(5);
     assert c.content == [4,2,5];
-    c.newAdd(2);
+    c.Add(2);
     assert c.content == [4,2,5];
 
+    var idx := c.FindElement(5);
+    assert idx == 2;
 
     var size := c.numElements();
     assert size == 3;
@@ -256,11 +222,14 @@ method Union(c: Conjunto) returns (d: Conjunto)
     var exist:= c.Contains(5);
     assert exist == true;
 
+    c.Remove(2);
+    assert c.content == [4,5];
+
     var b:= new Conjunto();
 
-    b.newAdd(1);
-
+    b.Add(1);
+    assert b.content == [1];
+    b.Remove(1);
+    assert b.content == [];
     var d:= b.Union(c);
-
-    assert d.content == [1,4,2,5];
   }
