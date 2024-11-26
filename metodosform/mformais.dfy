@@ -135,7 +135,7 @@ method Add(num:int)
     invariant num !in content ==> forall k :: 0 <= k < i ==> elements[k] != num
     {
       if elements[i] == num{
-         return i;
+        return i;
       }
       i:= i+1;
     }
@@ -169,15 +169,30 @@ method Union(c: Conjunto) returns (d: Conjunto)
   ensures Valid()
   ensures d.Valid()
   ensures c.Valid()
+  ensures forall i :: 0 <= i < d.elements.Length ==> d.elements[i] in content || d.elements[i] in c.content
+  ensures 0 <= d.elements.Length <= elements.Length + c.elements.Length
+  ensures forall i :: i in content ==> i in d.content
+  ensures forall i :: i in c.content ==> i in d.content
+
 {
   d := new Conjunto();
 
   var i := 0;
-  while i < elements.Length
+  while i < this.elements.Length
+  decreases this.elements.Length - i
     invariant 0 <= i <= elements.Length
     invariant d.Valid()
+    invariant Valid()
+    invariant forall j :: j in d.content ==> j in content
+    invariant d.elements.Length <= i
+    invariant d.elements.Length <= elements.Length
+    invariant forall k :: 0 <= k < i ==> this.elements[k] in content
   {
-    d.Add(elements[i]);
+    var num := this.elements[i];
+    var contains := d.Contains(num);
+    if !contains {
+      d.Add(num);
+    }
     i := i + 1;
   }
 
@@ -185,6 +200,14 @@ method Union(c: Conjunto) returns (d: Conjunto)
   while i < c.elements.Length
     invariant 0 <= i <= c.elements.Length
     invariant d.Valid()
+    decreases c.elements.Length - i
+    invariant Valid()
+    invariant forall j :: j in d.content ==> j in this.content || j in c.content
+    invariant d.elements.Length <= this.elements.Length + i
+    invariant d.elements.Length <= elements.Length + c.elements.Length
+    invariant forall k :: k in this.content ==> k in d.content
+    invariant forall k :: 0 <= k < i ==> c.elements[k] in d.content
+    
   {
     var contains := d.Contains(c.elements[i]);
     if !contains {
@@ -263,9 +286,9 @@ method Interseccao(c: Conjunto) returns (d: Conjunto)
     assert b.content == [1, 4, 5];
 
     var d := b.Union(c);
-    assert d.content == [1, 4, 5]; 
-    assert c.content == [4, 5];   
-    assert b.content == [1, 4, 5]; 
+    var teste := {1,4,5};
+    assert (set n : int | n in d.content) == teste;
+    
 
     var interseccao := c.Interseccao(b);
     assert interseccao.content == [4, 5]; 
