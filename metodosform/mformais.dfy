@@ -181,10 +181,7 @@ method Union(c: Conjunto) returns (d: Conjunto)
     invariant forall k :: 0 <= k < i ==> elements[k] in d.content
     invariant d.Valid()
   {
-    var contains := d.Contains(elements[i]);
-    if !contains {
-      d.Add(elements[i]);
-    }
+    d.Add(elements[i]);
     i := i + 1;
   }
 
@@ -198,10 +195,7 @@ method Union(c: Conjunto) returns (d: Conjunto)
     invariant forall k :: 0 <= k < i ==> c.elements[k] in d.content
     invariant forall i :: i in content ==> i in d.content
   {
-    var contains := d.Contains(c.elements[i]);
-    if !contains {
-      d.Add(c.elements[i]);
-    }
+    d.Add(c.elements[i]);
     i := i + 1;
   }
 }
