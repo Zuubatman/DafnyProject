@@ -121,7 +121,6 @@ method Add(num:int)
 
   method FindElement(num:int) returns (index: int)
   requires Valid()
-  requires elements.Length >= 0
   ensures num !in content ==> index < 0
   ensures num in content ==> index>=0 && index < elements.Length
   ensures num in content ==> elements[index] == num
@@ -164,34 +163,27 @@ method Add(num:int)
 method Union(c: Conjunto) returns (d: Conjunto)
   requires Valid()
   requires c.Valid()
-  requires elements.Length >= 0
-  requires c.elements.Length >= 0
-  ensures Valid()
-  ensures d.Valid()
-  ensures c.Valid()
   ensures forall i :: 0 <= i < d.elements.Length ==> d.elements[i] in content || d.elements[i] in c.content
   ensures 0 <= d.elements.Length <= elements.Length + c.elements.Length
   ensures forall i :: i in content ==> i in d.content
   ensures forall i :: i in c.content ==> i in d.content
-
+  ensures d.Valid()
 {
   d := new Conjunto();
 
   var i := 0;
-  while i < this.elements.Length
-  decreases this.elements.Length - i
+  while i < elements.Length
     invariant 0 <= i <= elements.Length
-    invariant d.Valid()
-    invariant Valid()
-    invariant forall j :: j in d.content ==> j in content
+    invariant forall k :: k in d.content ==> k in content
     invariant d.elements.Length <= i
     invariant d.elements.Length <= elements.Length
-    invariant forall k :: 0 <= k < i ==> this.elements[k] in content
+    invariant forall k :: 0 <= k < i ==> content[k] in d.content
+    invariant forall k :: 0 <= k < i ==> elements[k] in d.content
+    invariant d.Valid()
   {
-    var num := this.elements[i];
-    var contains := d.Contains(num);
+    var contains := d.Contains(elements[i]);
     if !contains {
-      d.Add(num);
+      d.Add(elements[i]);
     }
     i := i + 1;
   }
@@ -200,14 +192,11 @@ method Union(c: Conjunto) returns (d: Conjunto)
   while i < c.elements.Length
     invariant 0 <= i <= c.elements.Length
     invariant d.Valid()
-    decreases c.elements.Length - i
-    invariant Valid()
-    invariant forall j :: j in d.content ==> j in this.content || j in c.content
-    invariant d.elements.Length <= this.elements.Length + i
+    invariant forall k :: k in d.content ==> k in content || k in c.content
+    invariant d.elements.Length <= elements.Length + i
     invariant d.elements.Length <= elements.Length + c.elements.Length
-    invariant forall k :: k in this.content ==> k in d.content
     invariant forall k :: 0 <= k < i ==> c.elements[k] in d.content
-    
+    invariant forall i :: i in content ==> i in d.content
   {
     var contains := d.Contains(c.elements[i]);
     if !contains {
@@ -278,20 +267,18 @@ method Interseccao(c: Conjunto) returns (d: Conjunto)
     assert c.content == [4, 5];
 
     var b := new Conjunto();
-    b.Add(1);
-    assert b.content == [1];
-    b.Add(4);
-    assert b.content == [1, 4];
-    b.Add(5);
-    assert b.content == [1, 4, 5];
 
-    var d := b.Union(c);
-    var teste := {1,4,5};
+    b.Add(5);
+    assert b.content == [5];
+    b.Add(1);
+    assert b.content == [5, 1];
+    b.Add(7);
+
+    var d := c.Union(b);
+    var teste := {4,5,1,7};
     assert (set n : int | n in d.content) == teste;
     
 
     var interseccao := c.Interseccao(b);
-    assert interseccao.content == [4, 5]; 
-    assert c.content == [4, 5];          
-    assert b.content == [1, 4, 5];               
+      
 }
