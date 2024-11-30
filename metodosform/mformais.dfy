@@ -1,8 +1,7 @@
-// João Vitor Morandi, Rafael Fernando Blankenburg, Nicholas Spolti
+// João Vitor Morandi, Rafael Fernando Blankenburg e Nicholas Spolti
 
 class Conjunto {
     var elements: array<int> 
-    var last: int  
 
     ghost var content: seq<int>
     ghost var Repr: set<object>
@@ -25,52 +24,48 @@ class Conjunto {
     ensures content == []
     {
       elements := new int[0];
-      last := 0;
       content := [];
       Repr := {this, elements};
     }
 
-method Add(num:int)
-  requires Valid()
-  modifies this
-  ensures num !in old(content) ==> elements.Length == old(elements).Length + 1
-  ensures num !in old(content) ==> content == old(content) + [num] 
-  ensures elements.Length == |content|
-  ensures  forall i :: 0 <= i < elements.Length ==> elements[i] == content[i]
-  ensures num in old(content) ==> elements == old(elements)
-  ensures Valid()
-  {
+  method Add(num:int)
+    requires Valid()
+    modifies this
+    ensures num !in old(content) ==> elements.Length == old(elements).Length + 1
+    ensures num !in old(content) ==> content == old(content) + [num] 
+    ensures elements.Length == |content|
+    ensures  forall i :: 0 <= i < elements.Length ==> elements[i] == content[i]
+    ensures num in old(content) ==> elements == old(elements)
+    ensures Valid()
+    {
 
-    var isContained := Contains(num);
+      var isContained := Contains(num);
 
-    if(!isContained){
-      var a:= new int[elements.Length + 1];
+      if(!isContained){
+        var a:= new int[elements.Length + 1];
 
-      var i := 0; 
-      while i < elements.Length
-        invariant 0 <= i <= elements.Length
-        invariant a.Length == elements.Length + 1
-        invariant content == old(content)
-        invariant forall k :: 0 <= k < i ==> a[k] == elements[k]
-        invariant forall i :: 0 <= i < elements.Length ==> elements[i] == content[i]
-        invariant this in Repr
-        invariant elements in Repr
-        invariant last == old(last)
-      {
-        a[i] := elements[i];
-        i := i + 1;
+        var i := 0; 
+        while i < elements.Length
+          invariant 0 <= i <= elements.Length
+          invariant a.Length == elements.Length + 1
+          invariant content == old(content)
+          invariant forall k :: 0 <= k < i ==> a[k] == elements[k]
+          invariant forall i :: 0 <= i < elements.Length ==> elements[i] == content[i]
+          invariant this in Repr
+          invariant elements in Repr
+        {
+          a[i] := elements[i];
+          i := i + 1;
+        }
+
+        a[elements.Length] := num;
+        content := content + [num];
+        Repr := Repr + {a}; 
+        elements := a;
+
       }
 
-      a[elements.Length] := num;
-      content := content + [num];
-      Repr := Repr + {a}; 
-      elements := a;
-      last := last + 1;
-
-    }
-
-}   
-
+  }   
 
   method Contains(num: int) returns (ans: bool)
     requires Valid()
@@ -114,7 +109,6 @@ method Add(num:int)
       content:= seqtemp;
       Repr := Repr - {elements} + {a};
       elements := a;
-      last := last - 1;
     }
   }
 
@@ -141,7 +135,7 @@ method Add(num:int)
     return index;
   }
 
-  method numElements() returns (count: int)
+  method NumElements() returns (count: int)
     requires Valid()
     ensures count == elements.Length
     ensures Valid()
@@ -160,120 +154,90 @@ method Add(num:int)
     return false;
   }
 
-method Union(c: Conjunto) returns (d: Conjunto)
+  method Union(c: Conjunto) returns (d: Conjunto)
+    requires Valid()
+    requires c.Valid()
+    ensures forall i :: 0 <= i < d.elements.Length ==> d.elements[i] in content || d.elements[i] in c.content
+    ensures 0 <= d.elements.Length <= elements.Length + c.elements.Length
+    ensures forall i :: i in content ==> i in d.content
+    ensures forall i :: i in c.content ==> i in d.content
+    ensures d.Valid()
+  {
+    d := new Conjunto();
+
+    var i := 0;
+    while i < elements.Length
+      invariant 0 <= i <= elements.Length
+      invariant forall k :: k in d.content ==> k in content
+      invariant d.elements.Length <= i
+      invariant d.elements.Length <= elements.Length
+      invariant forall k :: 0 <= k < i ==> content[k] in d.content
+      invariant forall k :: 0 <= k < i ==> elements[k] in d.content
+      invariant d.Valid()
+    {
+      var num := elements[i];
+      var isContained := d.Contains(num);
+      if !isContained{
+            d.Add(num);
+      }
+      i := i + 1;
+    }
+
+    i := 0;
+    while i < c.elements.Length
+      invariant 0 <= i <= c.elements.Length
+      invariant d.Valid()
+      invariant forall k :: k in d.content ==> k in content || k in c.content
+      invariant d.elements.Length <= elements.Length + i
+      invariant d.elements.Length <= elements.Length + c.elements.Length
+      invariant forall k :: 0 <= k < i ==> c.elements[k] in d.content
+      invariant forall i :: i in content ==> i in d.content
+    {
+      var num := c.elements[i];
+      var isContained := d.Contains(num);
+      if !isContained{
+        d.Add(num);
+      }
+      i := i + 1;
+    }
+  }
+
+  method Intersection(c: Conjunto) returns (ans: Conjunto)
   requires Valid()
   requires c.Valid()
-  ensures forall i :: 0 <= i < d.elements.Length ==> d.elements[i] in content || d.elements[i] in c.content
-  ensures 0 <= d.elements.Length <= elements.Length + c.elements.Length
-  ensures forall i :: i in content ==> i in d.content
-  ensures forall i :: i in c.content ==> i in d.content
-  ensures d.Valid()
-{
-  d := new Conjunto();
-
-  var i := 0;
-  while i < elements.Length
-    invariant 0 <= i <= elements.Length
-    invariant forall k :: k in d.content ==> k in content
-    invariant d.elements.Length <= i
-    invariant d.elements.Length <= elements.Length
-    invariant forall k :: 0 <= k < i ==> content[k] in d.content
-    invariant forall k :: 0 <= k < i ==> elements[k] in d.content
-    invariant d.Valid()
+  ensures forall i :: i in content && i in c.content ==> i in ans.content
+  ensures forall i :: 0 <= i < ans.elements.Length ==> ans.elements[i] in ans.content && ans.elements[i] in c.content && ans.elements[i] in content 
+  ensures ans.Valid()
   {
-    var num := elements[i];
-    var isContained := d.Contains(num);
-    if !isContained{
-          d.Add(num);
-    }
-    i := i + 1;
-  }
+    var d := new Conjunto();
 
-  i := 0;
-  while i < c.elements.Length
-    invariant 0 <= i <= c.elements.Length
-    invariant d.Valid()
-    invariant forall k :: k in d.content ==> k in content || k in c.content
-    invariant d.elements.Length <= elements.Length + i
-    invariant d.elements.Length <= elements.Length + c.elements.Length
-    invariant forall k :: 0 <= k < i ==> c.elements[k] in d.content
-    invariant forall i :: i in content ==> i in d.content
-  {
-    var num := c.elements[i];
-    var isContained := d.Contains(num);
-    if !isContained{
-      d.Add(num);
-    }
-    i := i + 1;
-  }
-}
+    var i := 0;
 
-method NewInterseccao(c: Conjunto) returns (ans: Conjunto)
-requires Valid()
-requires c.Valid()
-ensures forall i :: i in content && i in c.content ==> i in ans.content
-ensures forall i :: 0 <= i < ans.elements.Length ==> ans.elements[i] in ans.content && ans.elements[i] in c.content && ans.elements[i] in content 
-ensures ans.Valid()
-{
-  var d := new Conjunto();
-
-  var i := 0;
-
-  while i < elements.Length
-  invariant 0 <= i <= elements.Length
-  invariant d.Valid()
-  invariant forall j :: 0 <= j < i ==> elements[j] in content && elements[j] in c.content ==> elements[j] in d.content
-  invariant forall i :: 0 <= i < d.elements.Length ==> d.elements[i] in d.content && d.elements[i] in c.content && d.elements[i] in content 
-  {
-    var isContainedInC := c.Contains(elements[i]);
-    var isContainedInMe := Contains(elements[i]);
-
-    if isContainedInC && isContainedInMe {
-      d.Add(elements[i]);
-    }
-
-    i := i + 1;
-  }
-
-  return d;
-}
-
-
-method Interseccao(c: Conjunto) returns (d: Conjunto)
-  requires Valid()
-  requires c.Valid()
-  requires elements.Length >= 0
-  requires c.elements.Length >= 0
-  ensures Valid()
-  ensures c.Valid()
-  ensures d.Valid()
-{
-  d := new Conjunto();
-
-  var i := 0;
-  while i < elements.Length
+    while i < elements.Length
     invariant 0 <= i <= elements.Length
     invariant d.Valid()
+    invariant forall j :: 0 <= j < i ==> elements[j] in content && elements[j] in c.content ==> elements[j] in d.content
+    invariant forall i :: 0 <= i < d.elements.Length ==> d.elements[i] in d.content && d.elements[i] in c.content && d.elements[i] in content 
+    {
+      var isContainedInC := c.Contains(elements[i]);
+      var isContainedInMe := Contains(elements[i]);
 
-  {
-    var contains := c.Contains(elements[i]);
-    if contains {
-      d.Add(elements[i]);
+      if isContainedInC && isContainedInMe {
+        d.Add(elements[i]);
+      }
+
+      i := i + 1;
     }
-    i := i + 1;
+
+    return d;
   }
 }
-
-}
-
-
-
-  method Main()
+method Main()
 {
     var c := new Conjunto();
 
-    var abacate := c.isEmpty();
-    assert abacate == true;
+    var empty := c.isEmpty();
+    assert empty == true;
 
     c.Add(4);
     assert c.content == [4];
@@ -287,7 +251,7 @@ method Interseccao(c: Conjunto) returns (d: Conjunto)
     var idx := c.FindElement(5);
     assert idx == 2;
 
-    var size := c.numElements();
+    var size := c.NumElements();
     assert size == 3;
 
     var isEmpty := c.isEmpty();
@@ -296,8 +260,9 @@ method Interseccao(c: Conjunto) returns (d: Conjunto)
     var exist := c.Contains(5);
     assert exist == true;
 
-    c.Remove(2);
+    c.Remove(2);  
     assert c.content == [4, 5];
+
     c.Add(1);
 
     var b := new Conjunto();
@@ -307,12 +272,11 @@ method Interseccao(c: Conjunto) returns (d: Conjunto)
     b.Add(1);
     b.Add(7);
 
-    var interseccao := c.NewInterseccao(b);
+    var intersection := c.Intersection(b);
     var teste2 := {5,1};
-    assert (set n : int | n in interseccao.content) == teste2;
+    assert (set n : int | n in intersection.content) == teste2;
 
     var d := c.Union(b);
     var teste := {4,5,1,7};
     assert (set n : int | n in d.content) == teste;
-      
 }
